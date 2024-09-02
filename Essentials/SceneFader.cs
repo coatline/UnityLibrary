@@ -44,9 +44,6 @@ public class SceneFader : Singleton<SceneFader>
         alpha = 1;
 
         sceneLoaded = true;
-
-        //thisSceneImage.color = Color.black;
-        //thisSceneImage.CrossFadeAlpha(0, 0.25f, false);
     }
 
     public void LoadNewScene(string sceneName, float fadeTime)
@@ -55,11 +52,6 @@ public class SceneFader : Singleton<SceneFader>
         sceneToLoad = sceneName;
         loadingScene = true;
         Time.timeScale = 1;
-
-        SoundManager.I.PlaySound(buttonPressSound, Vector2.zero, 1, 0);
-
-        if (Game.I)
-            Game.I.LoadingNewScene = true;
 
         this.fadeTime = fadeTime;
     }
