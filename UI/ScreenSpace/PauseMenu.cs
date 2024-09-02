@@ -18,7 +18,6 @@ public class PauseMenu : MonoBehaviour
 
     private void Start()
     {
-        GameEnder.I.GameEnded += DisableInput;
         EnableInput();
     }
 

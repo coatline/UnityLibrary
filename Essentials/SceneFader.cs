@@ -6,7 +6,6 @@ using UnityEngine.UI;
 
 public class SceneFader : Singleton<SceneFader>
 {
-    [SerializeField] Sound buttonPressSound;
     [SerializeField] Image fadePrefab;
     Image thisSceneImage;
 

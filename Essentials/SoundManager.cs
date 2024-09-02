@@ -14,12 +14,17 @@ public class SoundManager : Singleton<SoundManager>
         usableSoundSources = new List<AudioSource>();
     }
 
-    public void PlaySound(Sound sound, Vector3 soundPosition, float volume = 1, float spatialBlend = 1)
+    public void PlaySound(SoundType sound, Vector3 soundPosition, float volume = 1, float spatialBlend = 1)
     {
         if (parent == null)
             parent = new GameObject("Sounds");
 
         PlayAudioClip(sound.RandomSound, TryGetAudioSource(), soundPosition, volume, spatialBlend);
+    }
+
+    public void PlaySound(string soundName, Vector3 soundPosition, float volume = 1, float spatialBlend = 1)
+    {
+        PlaySound(DataLibrary.I.Sounds[soundName], soundPosition, volume, spatialBlend);
     }
 
     void PlayAudioClip(AudioClip clip, AudioSource audioSource, Vector3 soundPosition, float volume, float spatialBlend)
