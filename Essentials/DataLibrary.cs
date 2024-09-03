@@ -55,46 +55,46 @@ public class Getter<T>
     public T this[int n] => UnsortedArray[n];
 }
 
-public class ItemGetter<T> : Getter<T>
-{
-    Dictionary<int, T> idToItem;
+// public class ItemGetter<T> : Getter<T>
+// {
+//     Dictionary<int, T> idToItem;
 
-    public ItemGetter(T[] ts) : base(ts)
-    {
-        idToItem = new Dictionary<int, T>();
+//     public ItemGetter(T[] ts) : base(ts)
+//     {
+//         idToItem = new Dictionary<int, T>();
 
-        for (int i = 0; i < Length; i++)
-        {
-            if (ts[i] == null) { Debug.Log("Null Data!"); continue; }
+//         for (int i = 0; i < Length; i++)
+//         {
+//             if (ts[i] == null) { Debug.Log("Null Data!"); continue; }
 
-            Item item = ts[i] as Item;
+//             Item item = ts[i] as Item;
 
-            idToItem.Add(item.Id, ts[i]);
-        }
-    }
+//             idToItem.Add(item.Id, ts[i]);
+//         }
+//     }
 
-    public T GetItemWithId(int id) => idToItem[id];
-}
+//     public T GetItemWithId(int id) => idToItem[id];
+// }
 
-public class SpecificItemGetter<T> : ItemGetter<T>
-{
-    T[] itemsSortedByTypeId;
+// public class SpecificItemGetter<T> : ItemGetter<T>
+// {
+//     T[] itemsSortedByTypeId;
 
-    public SpecificItemGetter(T[] ts) : base(ts)
-    {
-        itemsSortedByTypeId = new T[Length];
+//     public SpecificItemGetter(T[] ts) : base(ts)
+//     {
+//         itemsSortedByTypeId = new T[Length];
 
-        for (int i = 0; i < Length; i++)
-        {
-            if (ts[i] == null) { Debug.Log("Null Data!"); continue; }
+//         for (int i = 0; i < Length; i++)
+//         {
+//             if (ts[i] == null) { Debug.Log("Null Data!"); continue; }
 
-            Item item = ts[i] as Item;
+//             Item item = ts[i] as Item;
 
-            //Debug.Log($"{item.Name} id: {item.TypeId}");
+//             //Debug.Log($"{item.Name} id: {item.TypeId}");
 
-            itemsSortedByTypeId[item.TypeId] = ts[i];
-        }
-    }
+//             itemsSortedByTypeId[item.TypeId] = ts[i];
+//         }
+//     }
 
-    public T GetItemWithTypeId(int typeId) => itemsSortedByTypeId[typeId];
-}
+//     public T GetItemWithTypeId(int typeId) => itemsSortedByTypeId[typeId];
+// }
