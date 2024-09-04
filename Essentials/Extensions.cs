@@ -5,6 +5,16 @@ using UnityEngine;
 
 public static class Extensions
 {
+    /// <returns>The number value of whatever number key you just pressed. (-1 if none)</returns>
+    public static int GetNumberKeyDown(int min = 0, int maxIncluding = 9)
+    {
+        for (int i = min; i <= maxIncluding; i++)
+            if (Input.GetKeyDown(KeyCode.Alpha0 + i))
+                return i;
+
+        return -1;
+    }
+    
     public static Vector2 VectorAverage(Vector2 first,  Vector2 second)
     {
         return (first + second) / 2f;

@@ -8,7 +8,6 @@ public class FPCamera : MonoBehaviour
     [SerializeField] float cameraPitchLimit = 80;
     [SerializeField] float lookSensitivity = 1;
     [SerializeField] float smoothing = 1;
-    [SerializeField] float speed = 4;
     [SerializeField] Camera cam;
 
     Vector2 currentLookingPosition;
