@@ -5,24 +5,6 @@ using UnityEngine;
 
 public static class C
 {
-    public static Vector3 ConvertUIToWorldMoveAmount(Vector2 uiMoveAmount, Camera uiCamera)
-    {
-        // Step 1: Define a reference point on the screen (e.g., screen center, or any point you prefer)
-        Vector3 referenceScreenPos = new Vector3(Screen.width / 2, Screen.height / 2, 0f);
-
-        // Step 2: Convert the reference point to world space (2D, so we ignore Z)
-        Vector2 referenceWorldPos = uiCamera.ScreenToWorldPoint(referenceScreenPos);
-
-        // Step 3: Add the UI move amount to the screen position
-        Vector3 newScreenPos = referenceScreenPos + new Vector3(uiMoveAmount.x, uiMoveAmount.y, 0f);
-
-        // Step 4: Convert the new screen position to world space
-        Vector2 newWorldPos = uiCamera.ScreenToWorldPoint(newScreenPos);
-
-        // Step 5: Return the difference in world space (2D move amount)
-        return newWorldPos - referenceWorldPos;
-    }
-
     public static string DisplayTimeFromSeconds(int totalSeconds)
     {
         int seconds = totalSeconds % 60;
