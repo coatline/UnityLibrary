@@ -3,8 +3,54 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public static class Extensions
+public static class C
 {
+    public static Vector3 ConvertUIToWorldMoveAmount(Vector2 uiMoveAmount, Camera uiCamera)
+    {
+        // Step 1: Define a reference point on the screen (e.g., screen center, or any point you prefer)
+        Vector3 referenceScreenPos = new Vector3(Screen.width / 2, Screen.height / 2, 0f);
+
+        // Step 2: Convert the reference point to world space (2D, so we ignore Z)
+        Vector2 referenceWorldPos = uiCamera.ScreenToWorldPoint(referenceScreenPos);
+
+        // Step 3: Add the UI move amount to the screen position
+        Vector3 newScreenPos = referenceScreenPos + new Vector3(uiMoveAmount.x, uiMoveAmount.y, 0f);
+
+        // Step 4: Convert the new screen position to world space
+        Vector2 newWorldPos = uiCamera.ScreenToWorldPoint(newScreenPos);
+
+        // Step 5: Return the difference in world space (2D move amount)
+        return newWorldPos - referenceWorldPos;
+    }
+
+    public static string DisplayTimeFromSeconds(int totalSeconds)
+    {
+        int seconds = totalSeconds % 60;
+        int minutes = (totalSeconds / 60) % 60;
+        int hours = (totalSeconds / 3600) % 24;
+        int days = (totalSeconds / 86400);
+
+
+        string timeUsedText = "";  // Start with seconds
+
+        if (seconds > 0)
+            timeUsedText = $"{seconds}s";
+
+        if (minutes > 0)
+            timeUsedText = $"{minutes}m " + timeUsedText;  // Add minutes before seconds
+
+        if (hours > 0)
+            timeUsedText = $"{hours}h " + timeUsedText;    // Add hours before minutes and seconds
+
+        if (days > 0)
+            timeUsedText = $"{days}d " + timeUsedText;     // Add days before hours, minutes, and seconds
+
+        if (timeUsedText.Length == 0)
+            timeUsedText = $"{seconds}s";
+
+        return timeUsedText;
+    }
+    
     /// <returns>The number value of whatever number key you just pressed. (-1 if none)</returns>
     public static int GetNumberKeyDown(int min = 0, int maxIncluding = 9)
     {
