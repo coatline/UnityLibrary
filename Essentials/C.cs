@@ -5,6 +5,30 @@ using UnityEngine;
 
 public static class C
 {
+    /// <summary>
+    /// Subtract 90 when using
+    /// </summary>
+    public static float GetZAngleFromDir(Vector2 dir) => Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+
+    public static Vector3 GetRandVector(float minVal, float maxVal) => new Vector2(Random.Range(minVal, maxVal), Random.Range(minVal, maxVal));
+
+    public static bool MouseIsOverUI() => EventSystem.current.IsPointerOverGameObject();
+    public static Vector2 GetCameraSizeInUnits(Camera cam) => new Vector2(cam.orthographicSize * cam.aspect, cam.orthographicSize);
+
+    public static GameObject GobUnderMouse(Vector2 mousePos)
+    {
+        RaycastHit2D hit = Physics2D.Raycast(mousePos, new Vector3(0,0,1));
+
+        if (hit)
+            return hit.collider.gameObject;
+        return null;
+    }
+    
+    public static Vector2 MouseWorldPosition(Camera cam) => cam.ScreenToWorldPoint(Input.mousePosition);
+
+    public static Color SetAlpha(Color col, float newAlpha) => col = new Color(col.r, col.g, col.b, newAlpha);
+    public static void SetAlpha(ref SpriteRenderer sr, float newAlpha) => sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, newAlpha);
+
     public static string DisplayTimeFromSeconds(int totalSeconds)
     {
         int seconds = totalSeconds % 60;
@@ -59,6 +83,13 @@ public static class C
                             viewportPosition.z >= 0;
 
         return isInViewport;
+    }
+
+    public static G GetRandomValueFromDictionaryWithList<T, G>(Dictionary<T, List<G>> dict, T key)
+    {
+        if (dict.TryGetValue(key, out List<G> list) && list.Count > 0)
+            return list[Random.Range(0, list.Count)];
+        return default(G);
     }
 
     public static int GetValueCountFromDictionaryWithList<T, G>(Dictionary<T, List<G>> dict, T key)

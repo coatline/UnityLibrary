@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[DefaultExecutionOrder(-250)]
+[DefaultExecutionOrder(-5)]
 public class Singleton<T> : MonoBehaviour where T : Component
 {
     [SerializeField] bool dontDestroyOnLoad;

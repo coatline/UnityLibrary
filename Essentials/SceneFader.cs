@@ -30,7 +30,7 @@ public class SceneFader : Singleton<SceneFader>
         //if (thisSceneImage != null)
         //    DestroyImmediate(thisSceneImage);
 
-        Image i = Extensions.FindObjectOfNameFromArray("FadeOut(Clone)", FindObjectsOfType<Image>()) as Image;
+        Image i = C.FindObjectOfNameFromArray("FadeOut(Clone)", FindObjectsOfType<Image>()) as Image;
 
         if (i != null)
         {
@@ -38,7 +38,7 @@ public class SceneFader : Singleton<SceneFader>
             return;
         }
 
-        Canvas c = Extensions.FindObjectOfNameFromArray("Canvas", FindObjectsOfType<Canvas>()) as Canvas;
+        Canvas c = C.FindObjectOfNameFromArray("Canvas", FindObjectsOfType<Canvas>()) as Canvas;
         thisSceneImage = Instantiate(fadePrefab, c.transform);
         alpha = 1;
 

@@ -9,8 +9,9 @@ public class SoundManager : Singleton<SoundManager>
     List<AudioSource> usableSoundSources;
     GameObject parent;
 
-    private void Start()
+    protected override void Awake()
     {
+        base.Awake();
         usableSoundSources = new List<AudioSource>();
     }
 
@@ -54,10 +55,10 @@ public class SoundManager : Singleton<SoundManager>
     AudioSource NewAudioSource()
     {
         AudioSource audioSource = Instantiate(audioSourcePrefab, parent.transform);
-        audioSource.maxDistance = 100f;
-        audioSource.spatialBlend = 1f;
-        audioSource.rolloffMode = AudioRolloffMode.Linear;
-        audioSource.dopplerLevel = 0.0f;
+        //audioSource.maxDistance = 100f;
+        //audioSource.spatialBlend = 1f;
+        //audioSource.rolloffMode = AudioRolloffMode.Linear;
+        //audioSource.dopplerLevel = 0.0f;
 
         return audioSource;
     }
