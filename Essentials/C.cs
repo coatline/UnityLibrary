@@ -5,6 +5,8 @@ using UnityEngine;
 
 public static class C
 {
+    public static Vector2 GetSizeOfSprite(Sprite sprite) => new Vector2(sprite.rect.size.x / sprite.pixelsPerUnit, sprite.rect.size.y / sprite.pixelsPerUnit);
+
     /// <summary>
     /// Subtract 90 when using
     /// </summary>

@@ -28,6 +28,8 @@ public class SoundManager : Singleton<SoundManager>
         PlaySound(DataLibrary.I.Sounds[soundName], soundPosition, volume, spatialBlend);
     }
 
+    public void PlayAudioClip(AudioClip clip, Vector3 soundPosition, float volume = 1, float spatialBlend = 1) => PlayClip(clip, TryGetAudioSource(), soundPosition, volume, spatialBlend);
+
     void PlayAudioClip(AudioClip clip, AudioSource audioSource, Vector3 soundPosition, float volume, float spatialBlend)
     {
         audioSource.transform.position = soundPosition;

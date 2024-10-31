@@ -40,6 +40,16 @@ public class Getter<T>
         }
     }
 
+    public T GetRandomExcluding(List<T> excluding)
+    {
+        List<T> list = new List<T>(UnsortedArray);
+
+        for (int i = 0; i < excluding.Count; i++)
+            list.Remove(excluding[i]);
+
+        return list[Random.Range(0, list.Count)];
+    }
+
     public T GetRandom() => UnsortedArray[Random.Range(0, UnsortedArray.Length)];
 
     public T this[string n]
