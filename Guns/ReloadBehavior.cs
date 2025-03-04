@@ -11,30 +11,37 @@ public class ReloadBehavior : MonoBehaviour
     public event System.Action Reloaded;
     public event System.Action Shot;
 
-    [SerializeField] GunHolder itemHolder;
     [SerializeField] SpriteRenderer itemSR;
 
     public bool AutoReloading { get; private set; }
     public bool Reloading { get; private set; }
 
-    float fullyReloadTime;
     float reloadOneBulletTime;
     float autoReloadTimer;
 
     GunStack gunStack;
 
-    private void Start()
+    public void SetGun(GunStack gunStack)
     {
-        gunStack = itemHolder.GunStack;
+        if (this.gunStack != null)
+        {
+            this.gunStack.Shot -= Shot;
+            this.gunStack.ShotsGone -= StartAutoReload;
+        }
 
-        gunStack.Shot += Shot;
-        gunStack.ShotsGone += StartAutoReload;
-        fullyReloadTime = gunStack.GunType.FullReloadTime;
-        reloadOneBulletTime = gunStack.GunType.FullReloadTime / gunStack.GunType.ShotsPerClip;
+        this.gunStack = gunStack;
+
+        InstantlyFullyReload();
+
+        this.gunStack.Shot += Shot;
+        this.gunStack.ShotsGone += StartAutoReload;
+        reloadOneBulletTime = this.gunStack.GunType.FullReloadTime / this.gunStack.GunType.ShotsPerClip;
     }
 
     public void InstantlyFullyReload()
     {
+        autoReloadTimer = 0;
+        itemSR.color = Color.white;
         gunStack.FullReload();
         Reloading = false;
         AutoReloading = false;
@@ -43,7 +50,8 @@ public class ReloadBehavior : MonoBehaviour
 
     void StartAutoReload()
     {
-        if (AutoReloading) return;
+        if (AutoReloading)
+            return;
 
         SoundManager.I.PlaySound(DataLibrary.I.Sounds["Auto Reload"], transform.position);
 
@@ -52,15 +60,10 @@ public class ReloadBehavior : MonoBehaviour
         StartedAutoReload?.Invoke();
     }
 
-    public void StartReloading()
+    public void TryStartReloading()
     {
-        StartAutoReload();
-
-        //if (AutoReloading) return;
-
-        //// If we are not fully reloaded, reload
-        //if (gunStack.FullyReloaded == false && Reloading == false)
-        //    StartCoroutine(Reload());
+        if (gunStack != null && gunStack.FullyReloaded == false)
+            StartAutoReload();
     }
 
     public void StopReloading()
@@ -75,39 +78,20 @@ public class ReloadBehavior : MonoBehaviour
             autoReloadTimer += Time.deltaTime;
             OnAutoReloading?.Invoke(autoReloadTimer);
 
-            if (autoReloadTimer >= fullyReloadTime)
+            if (autoReloadTimer >= gunStack.GunType.FullReloadTime)
             {
-                autoReloadTimer = 0;
-                AutoReloading = false;
-                gunStack.FullReload();
-                itemSR.color = Color.white;
+                InstantlyFullyReload();
                 SoundManager.I.PlaySound(DataLibrary.I.Sounds["Finished Auto Reloading"], transform.position);
-                AutoReloadComplete?.Invoke();
             }
         }
-    }
-
-    IEnumerator Reload()
-    {
-        Reloading = true;
-
-        while (Reloading && gunStack.FullyReloaded == false)
-        {
-            yield return new WaitForSeconds(reloadOneBulletTime);
-
-            if (Reloading)
-            {
-                gunStack.Reload();
-                Reloaded?.Invoke();
-            }
-        }
-
-        Reloading = false;
     }
 
     private void OnDestroy()
     {
-        gunStack.ShotsGone -= StartAutoReload;
-        gunStack.Shot -= Shot;
+        if (gunStack != null)
+        {
+            gunStack.ShotsGone -= StartAutoReload;
+            gunStack.Shot -= Shot;
+        }
     }
 }

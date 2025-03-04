@@ -20,21 +20,19 @@ public class SoundManager : Singleton<SoundManager>
         if (parent == null)
             parent = new GameObject("Sounds");
 
-        PlayAudioClip(sound.RandomSound, TryGetAudioSource(), soundPosition, volume, spatialBlend);
+        PlayClip(sound.RandomSound, TryGetAudioSource(), soundPosition, volume, spatialBlend, 1 + Random.Range(sound.PitchShiftRange.x, sound.PitchShiftRange.y));
     }
 
-    public void PlaySound(string soundName, Vector3 soundPosition, float volume = 1, float spatialBlend = 1)
-    {
-        PlaySound(DataLibrary.I.Sounds[soundName], soundPosition, volume, spatialBlend);
-    }
+    public void PlaySound(string sound, Vector3 soundPosition, float volume = 1, float spatialBlend = 1) { PlaySound(DataLibrary.I.Sounds[sound], soundPosition, volume, spatialBlend); }
 
-    public void PlayAudioClip(AudioClip clip, Vector3 soundPosition, float volume = 1, float spatialBlend = 1) => PlayClip(clip, TryGetAudioSource(), soundPosition, volume, spatialBlend);
+    public void PlayAudioClip(AudioClip clip, Vector3 soundPosition, float volume = 1, float spatialBlend = 1, float pitch = 1) => PlayClip(clip, TryGetAudioSource(), soundPosition, volume, spatialBlend, pitch);
 
-    void PlayAudioClip(AudioClip clip, AudioSource audioSource, Vector3 soundPosition, float volume, float spatialBlend)
+    void PlayClip(AudioClip clip, AudioSource audioSource, Vector3 soundPosition, float volume, float spatialBlend, float pitch)
     {
         audioSource.transform.position = soundPosition;
         audioSource.spatialBlend = spatialBlend;
         audioSource.volume = volume;
+        audioSource.pitch = pitch;
         audioSource.PlayOneShot(clip);
 
         StartCoroutine(DelayUseAgain(audioSource, clip.length));
@@ -56,7 +54,7 @@ public class SoundManager : Singleton<SoundManager>
 
     AudioSource NewAudioSource()
     {
-        AudioSource audioSource = Instantiate(audioSourcePrefab, parent.transform);
+        AudioSource audioSource = Instantiate(audioSourcePrefab, transform);
         //audioSource.maxDistance = 100f;
         //audioSource.spatialBlend = 1f;
         //audioSource.rolloffMode = AudioRolloffMode.Linear;

@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class SceneFader : Singleton<SceneFader>
 {
+    public event System.Action<string> SceneJustLoaded;
+
     [SerializeField] Image fadePrefab;
     Image thisSceneImage;
 
@@ -15,22 +17,22 @@ public class SceneFader : Singleton<SceneFader>
     {
         base.Awake();
 
+        if (markedForDestroy) return;
+
         SceneManager.activeSceneChanged += OnSceneLoaded;
 
         OnSceneLoaded(SceneManager.GetActiveScene(), SceneManager.GetActiveScene());
-
-        fadeTime = 0.25f;
     }
 
     void OnSceneLoaded(Scene scene1, Scene scene2)
     {
-        if (calledLoaded == true || instance != this) return;
+        if (calledLoaded == true) return;
         calledLoaded = true;
 
-        //if (thisSceneImage != null)
-        //    DestroyImmediate(thisSceneImage);
+        if (thisSceneImage != null)
+            return;
 
-        Image i = C.FindObjectOfNameFromArray("FadeOut(Clone)", FindObjectsOfType<Image>()) as Image;
+        Image i = C.FindObjectOfNameFromArray("FadeOut(Clone)", FindObjectsByType<Image>(FindObjectsSortMode.None)) as Image;
 
         if (i != null)
         {
@@ -38,21 +40,23 @@ public class SceneFader : Singleton<SceneFader>
             return;
         }
 
-        Canvas c = C.FindObjectOfNameFromArray("Canvas", FindObjectsOfType<Canvas>()) as Canvas;
-        thisSceneImage = Instantiate(fadePrefab, c.transform);
-        alpha = 1;
+        SceneJustLoaded?.Invoke(SceneManager.GetActiveScene().name);
 
-        sceneLoaded = true;
+        Canvas c = C.FindObjectOfNameFromArray("Canvas", FindObjectsByType<Canvas>(FindObjectsSortMode.None)) as Canvas;
+        thisSceneImage = Instantiate(fadePrefab, c.transform);
+
+        thisSceneImage.color = Color.black;
+        Time.timeScale = 1;
+        thisSceneImage.CrossFadeAlpha(0, .5f, false);
     }
+
+    public void ReloadCurrentScene(float fadeTime) => LoadNewScene(SceneManager.GetActiveScene().name, fadeTime);
 
     public void LoadNewScene(string sceneName, float fadeTime)
     {
-        this.fadeTime = fadeTime;
-        sceneToLoad = sceneName;
-        loadingScene = true;
-        Time.timeScale = 1;
-
-        this.fadeTime = fadeTime;
+        StopAllCoroutines();
+        thisSceneImage.CrossFadeAlpha(1, fadeTime, true);
+        StartCoroutine(LoadNewSceneDelay(sceneName, fadeTime + 0f));
     }
 
     public void LoadNewScene(string sceneName)
@@ -60,40 +64,22 @@ public class SceneFader : Singleton<SceneFader>
         LoadNewScene(sceneName, 0.25f);
     }
 
-    string sceneToLoad;
-    bool loadingScene;
-    bool sceneLoaded;
-    float fadeTime;
-    float alpha;
-
-    private void Update()
+    IEnumerator LoadNewSceneDelay(string sceneName, float fadeTime)
     {
-        thisSceneImage.color = new Color(0, 0, 0, alpha);
+        yield return new WaitForSecondsRealtime(fadeTime);
+        calledLoaded = false;
+        SceneManager.LoadScene(sceneName);
+    }
 
-        if (loadingScene)
-        {
-            if (alpha < 1)
-                alpha += Time.unscaledDeltaTime / fadeTime;
-            else
-            {
-                sceneLoaded = false;
-                calledLoaded = false;
-                loadingScene = false;
-                SceneManager.LoadScene(sceneToLoad);
-            }
-        }
-        else
-        {
-            if (sceneLoaded == true)
-            {
-                if (alpha > 0)
-                    alpha -= Time.unscaledDeltaTime / fadeTime;
-                else if (alpha < 0)
-                {
-                    sceneLoaded = false;
-                    alpha = 0;
-                }
-            }
-        }
+    public void FadeOutAndIn(float fadeTime, float fadeInDelay)
+    {
+        StartCoroutine(FadeOutThenIn(fadeTime, fadeInDelay));
+    }
+
+    IEnumerator FadeOutThenIn(float fadeTime, float fadeInDelay)
+    {
+        thisSceneImage.CrossFadeAlpha(1, fadeTime, true);
+        yield return new WaitForSecondsRealtime(fadeTime + fadeInDelay);
+        thisSceneImage.CrossFadeAlpha(0, fadeTime, true);
     }
 }

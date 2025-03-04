@@ -37,7 +37,7 @@ public class StickToMovingPlatforms : MonoBehaviour
         if (movingPlatform == null)
             return;
 
-        if (rb.velocity.y - movingPlatform.MoveDelta.y > 0.1f) return;
+        if (rb.linearVelocity.y - movingPlatform.MoveDelta.y > 0.1f) return;
 
         // If we are on a platform, move our position to match the movement of the platform's
         transform.Translate(movingPlatform.MoveDelta.x * Time.fixedDeltaTime, 0, 0);

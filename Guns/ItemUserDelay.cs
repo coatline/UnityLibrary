@@ -5,52 +5,50 @@ using UnityEngine;
 [RequireComponent(typeof(GunUser))]
 public class ItemUserDelay : MonoBehaviour
 {
-    public bool CantUseItem { get; private set; }
-    [SerializeField] PlayerInputs playerInputs;
+    [SerializeField] CharacterInputs playerInputs;
     [SerializeField] GunUser user;
+
+    public bool CantUseItem { get; private set; }
+
+
     bool needInputReleased;
-    bool timeUp;
-
-    private void Start()
-    {
-        playerInputs.UseItemInputReleased += UseInputReleased;
-        user.Used += Wait;
-    }
-
-    IEnumerator ItemUseTimer()
-    {
-        yield return new WaitForSeconds(useTime);
-
-        timeUp = true;
-
-        if (needInputReleased == false)
-            CantUseItem = false;
-    }
+    IntervalTimer timer;
 
     public void UseInputReleased()
     {
         needInputReleased = false;
 
-        if (timeUp == true)
+        if (timer.IsRunning == false)
             CantUseItem = false;
     }
 
-    float useTime;
-
-    void Wait(float delay, bool isManual)
+    public void Wait(float delay, bool isManual)
     {
-        useTime = delay;
-        timeUp = false;
+        timer.StartWithInterval(delay);
         CantUseItem = true;
 
         needInputReleased = isManual;
-
-        StartCoroutine(ItemUseTimer());
     }
 
-    public void Respawn()
+    public void ResetDelay()
     {
-        StopAllCoroutines();
+        timer.Stop();
         CantUseItem = false;
+    }
+
+    private void FixedUpdate()
+    {
+        if (timer.DecrementIfRunning(Time.fixedDeltaTime))
+        {
+            timer.Stop();
+
+            if (needInputReleased == false)
+                CantUseItem = false;
+        }
+    }
+
+    private void OnEnable()
+    {
+        ResetDelay();
     }
 }

@@ -13,11 +13,11 @@ public class UserInputData
     public readonly ControlScheme ControlScheme;
     public readonly InputDevice[] Devices;
     public readonly InputUser InputUser;
-    public readonly bool HasKeyboard;
+    public readonly bool IsKeyboard;
 
     public UserInputData(ControlScheme controlScheme, InputDevice[] devices, Controls controls, InputUser inputUser)
     {
-        HasKeyboard = controlScheme.Name == "Keyboard&Mouse";
+        IsKeyboard = controlScheme.Name == "Keyboard&Mouse";
         ControlScheme = controlScheme;
         Devices = devices;
         Controls = controls;
@@ -26,8 +26,11 @@ public class UserInputData
 
     public void SetControls(Controls newControls)
     {
+        Controls.Disable();
+        Controls.Dispose();
+
         Controls = newControls;
-        InputsManager.I.SetUserNewControls(InputUser, newControls);
+        InputUserManager.I.SetUserNewControls(InputUser, newControls);
         ControlsChanged?.Invoke();
     }
 }

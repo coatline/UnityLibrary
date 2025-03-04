@@ -3,59 +3,64 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public class Missile : Bullet
+public class Missile : Projectile
 {
     public event System.Action Exploded;
 
-    [SerializeField] protected RocketProperties rocketProperties;
     [SerializeField] Explosion explosionPrefab;
+    [SerializeField] Sprite acceleratingSprite;
+    [SerializeField] float explosionDamage;
 
     public bool BlewUp { get; private set; }
-    bool accelerating;
 
-    void Start()
+    IntervalTimer lifetimeTimer;
+    float acceleration;
+    float speed;
+
+    public override void Initialize(ProjectileProperties properties, Item sourceItem, Character sourceCharacter)
     {
-        StartCoroutine(DelayMovement());
+        base.Initialize(properties, sourceItem, sourceCharacter);
     }
 
-    public void RocketSetup(RocketProperties properties)
+    public void SetLifeTime(float time)
     {
-        this.rocketProperties = properties;
+        lifetimeTimer.StartWithInterval(time);
+    }
+
+    public void SetSpeed(float speed)
+    {
+        this.speed = speed;
     }
 
     protected override void OnDestroyed()
     {
         Explosion e = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
-        e.Setup(properties.Damage, player, properties.SourceItem);
+        e.Initialize(explosionDamage, sourceCharacter, sourceItem, sourceCharacter.PlayerController.FriendlyColliders);
 
         Exploded?.Invoke();
         BlewUp = true;
         Destroy(gameObject);
     }
 
-    Vector2 acceleration;
-    float time;
-
     protected override void FixedUpdate()
     {
         base.FixedUpdate();
 
-        if (accelerating)
+        Vector2 direction = transform.up;
+        speed += (acceleration) * Time.fixedDeltaTime;
+        rb.linearVelocity = direction * speed;
+
+        if (lifetimeTimer.DecrementIfRunning(Time.fixedDeltaTime))
         {
-            acceleration = (rocketProperties.Acceleration) * transform.up;
-            rb.velocity = ((new Vector2(rocketProperties.StartupSpeed, rocketProperties.StartupSpeed)) * transform.up);
-            rb.velocity += acceleration * time;
-            rb.velocity = Vector2.ClampMagnitude(rb.velocity, rocketProperties.MaxSpeed);
-            time += Time.fixedDeltaTime;
+            TryDestroy();
+            lifetimeTimer.Stop();
         }
-        else
-            rb.velocity = new Vector2(rocketProperties.StartupSpeed, rocketProperties.StartupSpeed) * transform.up;
     }
 
-    IEnumerator DelayMovement()
+    public void SetAcceleration(float acceleration)
     {
-        yield return new WaitForSeconds(rocketProperties.StartupDuration);
-        accelerating = true;
-        //col.enabled = true;
+        this.acceleration = acceleration;
+        speed *= 1.75f;
     }
+    public void SetSprite() => sr.sprite = acceleratingSprite;
 }

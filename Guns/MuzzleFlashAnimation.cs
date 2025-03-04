@@ -20,13 +20,12 @@ public class MuzzleFlashAnimation : MonoBehaviour
     {
         if (sr.color.a > 0)
         {
-            //alpha -= Time.deltaTime * speed;
             sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, sr.color.a - Time.deltaTime * speed);
         }
     }
 
     private void OnEnable()
     {
-            sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 0);
+        sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 0);
     }
 }

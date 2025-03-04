@@ -4,9 +4,10 @@ using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Users;
 
-public class InputsManager : Singleton<InputsManager>
+public class InputUserManager : Singleton<InputUserManager>
 {
     public event System.Action<InputDevice> DeviceAdded;
+    public event System.Action<InputDevice> DeviceReconnected;
     public event System.Action<InputDevice> DeviceDisconnected;
 
     [SerializeField] bool debugLogs;
@@ -20,6 +21,10 @@ public class InputsManager : Singleton<InputsManager>
 
     protected override void Awake()
     {
+        base.Awake();
+
+        if (markedForDestroy) return;
+
         AllSeenInputDevices = new();
         connectedDevices = new();
         userToInputData = new();
@@ -30,13 +35,11 @@ public class InputsManager : Singleton<InputsManager>
 
         for (int i = 0; i < InputSystem.devices.Count; i++)
             OnDeviceChanged(InputSystem.devices[i], InputDeviceChange.Added);
-
-        base.Awake();
     }
 
     public Controls GetControlsFromUser(InputUser u) => userToControls[u];
-    public bool IsDeviceConnected(InputDevice device) => connectedDevices.Contains(device);
     public bool IsDeviceBeingUsed(InputDevice device) => deviceToUser.ContainsKey(device);
+    public bool IsDeviceConnected(InputDevice device) => connectedDevices.Contains(device);
     public UserInputData GetUserInputData(InputUser user)
     {
         if (userToInputData.TryGetValue(user, out UserInputData val))
@@ -133,15 +136,22 @@ public class InputsManager : Singleton<InputsManager>
                         Debug.Log($"Device Added: {device.displayName}, Id: {device.deviceId}");
 
                     AllSeenInputDevices.Add(device);
+                    DeviceAdded?.Invoke(device);
                 }
-                else if (debugLogs)
-                    Debug.Log($"Device Reconnected: {device.displayName}, ID: {device.deviceId}");
+                else
+                {
+                    if (debugLogs)
+                        Debug.Log($"Device Reconnected: {device.displayName}, ID: {device.deviceId}");
+
+                    DeviceReconnected?.Invoke(device);
+                }
 
                 connectedDevices.Add(device);
 
-                DeviceAdded?.Invoke(device);
                 break;
-
+            case InputDeviceChange.Reconnected:
+                // TODO: test to see when this case is called..
+                break;
             case InputDeviceChange.Disconnected:
                 if (debugLogs)
                     Debug.Log($"Device Disconnected: {device.displayName}");
@@ -152,21 +162,7 @@ public class InputsManager : Singleton<InputsManager>
         }
     }
 
-    bool IsDeviceNew(InputDevice device)
-    {
-        return AllSeenInputDevices.Contains(device) == false;
-
-        for (int i = 0; i < AllSeenInputDevices.Count; i++)
-        {
-            if (AllSeenInputDevices[i].deviceId == device.deviceId)
-            {
-                Debug.Log($"deviceID : {AllSeenInputDevices[i].deviceId}, {AllSeenInputDevices[i].displayName}");
-                return false;
-            }
-        }
-
-        return true;
-    }
+    public bool IsDeviceNew(InputDevice device) => AllSeenInputDevices.Contains(device) == false;
 
     private void OnDestroy()
     {

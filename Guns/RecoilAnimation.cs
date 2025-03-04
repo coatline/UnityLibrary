@@ -46,7 +46,14 @@ public class RecoilAnimation : MonoBehaviour
 
     IEnumerator DelayRecovery()
     {
-        yield return new WaitForSeconds(currentSettings.RecoveryDelay);
+        float timer = 0;
+
+        while (timer < currentSettings.RecoveryDelay)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
         recovering = true;
     }
 

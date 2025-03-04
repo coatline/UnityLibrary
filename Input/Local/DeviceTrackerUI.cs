@@ -1,37 +1,35 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-public class DeviceTrackerUI : MonoBehaviour
+public class DeviceDisplayer : MonoBehaviour
 {
-    [SerializeField] HorizontalLayoutGroup layout;
+    [SerializeField] RectTransform rectTransform;
     [SerializeField] Image deviceIconPrefab;
-    [SerializeField] bool debugLogs;
-
     [SerializeField] Sprite keyboardSprite;
+    [SerializeField] float spacing;
+    [SerializeField] float padding;
 
     Dictionary<InputDevice, Image> deviceToIcon;
+    List<Image> icons;
 
-    void Awake()
+    void Start()
     {
         deviceToIcon = new();
+        icons = new();
 
-        InputsManager.I.DeviceAdded += DeviceAdded;
-        InputsManager.I.DeviceDisconnected += DeviceDisconnected;
+        InputUserManager.I.DeviceAdded += DeviceAdded;
+        InputUserManager.I.DeviceReconnected += DeviceReconnected;
+        InputUserManager.I.DeviceDisconnected += DeviceDisconnected;
 
-        InitializeDevices();
-    }
-
-    void InitializeDevices()
-    {
-        foreach (InputDevice device in InputsManager.I.AllSeenInputDevices)
+        for (int i = 0; i < InputUserManager.I.AllSeenInputDevices.Count; i++)
         {
-            DeviceAdded(device);
+            InputDevice dev = InputUserManager.I.AllSeenInputDevices[i];
+            DeviceAdded(dev);
 
-            if (InputsManager.I.IsDeviceConnected(device) == false)
-                DeviceDisconnected(device);
+            if (InputUserManager.I.IsDeviceConnected(dev) == false)
+                DeviceDisconnected(dev);
         }
     }
 
@@ -40,51 +38,41 @@ public class DeviceTrackerUI : MonoBehaviour
         if (device is Mouse)
             return;
 
-        if (deviceToIcon.ContainsKey(device))
-        {
-            DeviceReconnected(device);
-            return;
-        }
-
-        Image newIcon = Instantiate(deviceIconPrefab, layout.transform);
+        Image newIcon = Instantiate(deviceIconPrefab, transform);
         deviceToIcon.Add(device, newIcon);
+        icons.Add(newIcon);
 
         if (device is Keyboard)
             newIcon.sprite = keyboardSprite;
-    }
 
-    void DeviceDisconnected(InputDevice device)
-    {
-        deviceToIcon[device].color -= new Color(0, 0, 0, 0.5f);
+        float totalSize = 0;
+
+        for (int i = 0; i < icons.Count; i++)
+        {
+            icons[i].rectTransform.anchoredPosition = new Vector2(i * spacing + totalSize + padding, 0);
+            totalSize += icons[i].rectTransform.sizeDelta.x;
+        }
+
+        rectTransform.sizeDelta = new Vector2(totalSize + (spacing * (icons.Count - 1)) + padding * 2, rectTransform.sizeDelta.y);
     }
 
     void DeviceReconnected(InputDevice device)
     {
-        deviceToIcon[device].color += new Color(0, 0, 0, 0.5f);
+        deviceToIcon[device].color += new Color(1, 1f, 1f, 0f);
     }
 
-    //IEnumerator DisconnectTextAnimation()
-    //{
-    //    disconnectedText.gameObject.SetActive(true);
-
-    //    Vector3 position = disconnectedText.transform.position;
-
-    //    while (disconnectedText.transform.position.y < position.y + 50)
-    //    {
-    //        disconnectedText.transform.Translate(0, 0.75f, 0);
-    //        disconnectedText.color = new Color(1, 1, 1, disconnectedText.color.a - Time.deltaTime);
-    //        yield return null;
-    //    }
-
-    //    disconnectedText.gameObject.SetActive(false);
-    //    disconnectedText.transform.position = position;
-    //    disconnectedText.color = Color.white + new Color(0, 0, 0, 1);
-    //}
+    void DeviceDisconnected(InputDevice device)
+    {
+        deviceToIcon[device].color -= new Color(1, 1f, 1f, 0f);
+    }
 
     private void OnDestroy()
     {
-        if (InputsManager.I == null) return;
-        InputsManager.I.DeviceAdded -= DeviceAdded;
-        InputsManager.I.DeviceDisconnected -= DeviceDisconnected;
+        if (InputUserManager.I == null)
+            return;
+
+        InputUserManager.I.DeviceAdded -= DeviceAdded;
+        InputUserManager.I.DeviceReconnected -= DeviceReconnected;
+        InputUserManager.I.DeviceDisconnected -= DeviceDisconnected;
     }
 }

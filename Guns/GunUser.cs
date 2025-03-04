@@ -5,90 +5,92 @@ using UnityEngine;
 [RequireComponent(typeof(GunHolder))]
 public class GunUser : MonoBehaviour
 {
-    public event System.Action<float, bool> Used;
+    public event System.Action GunUsed;
 
     [SerializeField] MuzzleFlashAnimation muzzleFlashAnimation;
+    [SerializeField] ParticleSystem bulletCasingParticles;
     [SerializeField] ReloadBehavior reloadBehavior;
     [SerializeField] ItemUserDelay itemUserDelay;
     [SerializeField] AudioSource itemAudioSource;
     [SerializeField] SpriteRenderer muzzleFlash;
     [SerializeField] SpriteRenderer itemSprite;
+    [SerializeField] SpecialUser specialUser;
     [SerializeField] Transform handSprite;
     [SerializeField] RecoilAnimation recoil;
     [SerializeField] GunHolder itemHolder;
     [SerializeField] Collider2D[] hitBoxes;
-    [SerializeField] HealthHaver damageable;
-    [SerializeField] Player player;
+    [SerializeField] Character character;
     [SerializeField] Mover mover;
 
-    public Collider2D[] HitBoxes => hitBoxes;
+    public Collider2D[] MyColliders => hitBoxes;
     public bool Bursting { get; private set; }
     public bool UseItemLock { get; set; }
 
-    private void Start()
-    {
-        damageable.Respawned += Respawned;
-    }
+    GunStack GunStack => itemHolder.GunStack;
 
-    void Respawned()
+    public void GunChanged()
     {
         Bursting = false;
-        itemUserDelay.Respawn();
+        itemUserDelay.ResetDelay();
+    }
+
+    public void Respawning()
+    {
+        Bursting = false;
+        itemUserDelay.ResetDelay();
     }
 
     public void TryUseItem()
     {
-        if (UseItemLock || itemUserDelay.CantUseItem || itemHolder.Gun == null) return;
+        if (UseItemLock || itemUserDelay.CantUseItem || GunStack == null || gameObject.activeSelf == false || (specialUser.SpecialActive && specialUser.Special.CanShoot == false)) return;
 
-        GunStack gunStack = itemHolder.GunStack;
-        Gun gun = itemHolder.Gun;
-
-        if (gunStack.ShotsRemaining == 0 || reloadBehavior.AutoReloading)
+        if (GunStack.ShotsRemaining == 0 || reloadBehavior.AutoReloading)
             return;
 
         if (reloadBehavior.Reloading)
             reloadBehavior.StopReloading();
 
-        if (gun.Burst)
-            StartCoroutine(BurstFire(gunStack));
+        if (GunStack.GunType.Burst)
+            StartCoroutine(BurstFire());
         else
-            Fire(gunStack);
+            Fire();
 
-        Used?.Invoke(gun.UseDelay, gun.ManualFire);
+        itemUserDelay.Wait(GunStack.GunType.UseDelay, GunStack.GunType.ManualFire);
+        GunUsed?.Invoke();
     }
 
-    void Fire(GunStack gunStack)
+    void Fire()
     {
-        InGameStats itemStats = player.ItemMatchStats[gunStack.GunType];
-        itemStats.uses++;
-        player.ItemMatchStats[gunStack.GunType] = itemStats;
+        RumbleController.I.TryStartRumbleFor(character.PlayerData, new Rumble(GunStack.GunType.RumbleLowFrequency, GunStack.GunType.RumbleHighFrequency, GunStack.GunType.RumbleDuration));
+        SoundManager.I.PlaySound(GunStack.GunType.SoundOnUse, handSprite.position);
 
-        SoundManager.I.PlaySound(gunStack.GunType.SoundOnUse, handSprite.position);
-
-        for (int i = 0; i < gunStack.GunType.BulletCount; i++)
-            if (gunStack.TryShoot())
-                ShootProjectile(i, gunStack.GunType);
+        for (int i = 0; i < GunStack.GunType.BulletCount; i++)
+            if (GunStack.TryShoot())
+                ShootProjectile(i, GunStack.GunType);
             else
                 break;
 
         // Do recoil
-        recoil.Recoil(gunStack.GunType.RecoilSettings);
+        recoil.Recoil(GunStack.GunType.RecoilSettings);
 
-        if (gunStack.GunType.RecoilSettings.SetVelocityToRecoil)
+        Vector2 recoilForce = -itemSprite.transform.right * GunStack.GunType.RecoilSettings.ActualRecoilForce;
+
+        if (GunStack.GunType.RecoilSettings.SetVelocityToRecoil)
         {
-            mover.SetYVelocity(0);
-            mover.AddExternalForce((-itemSprite.transform.right * gunStack.GunType.RecoilSettings.ActualRecoilForce));
-
-
-            //mover.SetYVelocity((-itemSprite.transform.right * gunStack.GunType.RecoilSettings.ActualRecoilForce).y);
-            //mover.AddExternalForce((-itemSprite.transform.right * gunStack.GunType.RecoilSettings.ActualRecoilForce) * new Vector2(1, 0));
+            mover.SetXForce(recoilForce.x);
+            mover.SetYVelocity(recoilForce.y);
         }
         else
-            mover.AddExternalForce((-itemSprite.transform.right * gunStack.GunType.RecoilSettings.ActualRecoilForce));
+        {
+            mover.AddXForce(recoilForce.x);
+            mover.AddYVelocity(recoilForce.y);
+        }
     }
 
     void ShootProjectile(int bulletIndex, Gun gun)
     {
+        bulletCasingParticles.Emit(1);
+
         float randRot = 0;
         float xOffset = 0;
 
@@ -107,24 +109,25 @@ public class GunUser : MonoBehaviour
         CreateProjectile(randRot, xOffset, gun);
     }
 
-    IEnumerator BurstFire(GunStack gunStack)
+    IEnumerator BurstFire()
     {
-        Gun gun = gunStack.GunType;
+        GunStack startingGun = GunStack;
 
         Bursting = true;
 
-        float burstTime = gun.TimeBetweenAttacks;
-        int bursts = gun.AttacksPerBurst;
+        float burstTime = startingGun.GunType.TimeBetweenAttacks;
+        int bursts = startingGun.GunType.AttacksPerBurst;
 
         for (int i = 0; i < bursts; i++)
         {
             // If we change items partway through the burst then stop bursting
-            if (itemHolder.Gun == null || gun != itemHolder.Gun || gunStack.ShotsRemaining == 0 || reloadBehavior.Reloading) { break; }
+            if (itemHolder.GunStack == null || startingGun != itemHolder.GunStack || GunStack.ShotsRemaining == 0 || reloadBehavior.Reloading)
+                break;
 
-            Fire(gunStack);
+            Fire();
 
             // Do not wait again if this is the last bullet
-            if (i < bursts - 1 && gunStack.ShotsRemaining > 0)
+            if (i < bursts - 1 && GunStack.ShotsRemaining > 0)
                 yield return new WaitForSeconds(burstTime);
         }
 
@@ -141,20 +144,17 @@ public class GunUser : MonoBehaviour
             muzzleFlash.transform.position = bulletHole + itemSprite.transform.position;
         }
 
-        Projectile newProjectile = Instantiate(gun.ProjectilePrefab, itemSprite.transform.position, Quaternion.Euler(handSprite.eulerAngles - new Vector3(0, 0, 90 + randRot)));
+        Quaternion rot = Quaternion.Euler(handSprite.eulerAngles - new Vector3(0, 0, 90 + randRot));
+        Projectile projectile = Instantiate(gun.ProjectilePrefab, itemSprite.transform.position, rot);
 
-        newProjectile.transform.localPosition += new Vector3(bulletHole.x, bulletHole.y);
+        projectile.transform.localPosition += new Vector3(bulletHole.x, bulletHole.y);
         // Z value is strange.
-        newProjectile.transform.Translate(newProjectile.transform.right * xOffset, Space.World);
+        projectile.transform.Translate(projectile.transform.right * xOffset, Space.World);
 
-        newProjectile.Setup(gun.ProjectileProperties, newProjectile.transform.up, player, player.Team.Hitboxes);
+        projectile.Move(gun.ShotForce, projectile.transform.up);
+        projectile.Initialize(gun.ProjectileProperties, gun, character);
+        projectile.SetColor(character.TeamColor, character.TeamOutlineColor);
 
-        return newProjectile;
-    }
-
-    private void OnDestroy()
-    {
-        damageable.Respawned -= Respawned;
-        //playerInputs.UseItem -= TryUseItem;
+        return projectile;
     }
 }

@@ -6,6 +6,26 @@ public class GunStack
 {
     public event System.Action ShotsGone;
     public event System.Action Shot;
+
+    public readonly int MaxShots;
+    public readonly Gun GunType;
+
+    public GunStack(Gun gun, float ammoMultiplier)
+    {
+        GunType = gun;
+        MaxShots = Mathf.CeilToInt(gun.ShotsPerClip * ammoMultiplier);
+        ShotsRemaining = MaxShots;
+    }
+
+    public bool TryShoot()
+    {
+        if (ShotsRemaining <= 0) return false;
+
+        ShotsRemaining--;
+        Shot?.Invoke();
+        return true;
+    }
+
     int shotsRemaining;
     public int ShotsRemaining
     {
@@ -18,24 +38,6 @@ public class GunStack
             if (value == 0)
                 ShotsGone?.Invoke();
         }
-    }
-    public readonly int MaxShots;
-
-    public readonly Gun GunType;
-    public GunStack(Gun gun)
-    {
-        GunType = gun;
-        MaxShots = gun.ShotsPerClip;
-        ShotsRemaining = MaxShots;
-    }
-
-    public bool TryShoot()
-    {
-        if (ShotsRemaining <= 0) return false;
-
-        ShotsRemaining--;
-        Shot?.Invoke();
-        return true;
     }
 
     public bool FullyReloaded => shotsRemaining == MaxShots;

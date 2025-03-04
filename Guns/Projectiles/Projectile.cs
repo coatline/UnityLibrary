@@ -4,137 +4,173 @@ using UnityEngine;
 
 public class Projectile : MonoBehaviour
 {
-    // Play shooting sound on projectiles so that fast firing weapons do not cut off the sounds
+    [SerializeField] ShaderEffectController shaderEffectController;
+    [SerializeField] FadeDestroyAnimation fadeDestroyAnimation;
+    [SerializeField] Collider2D hitCollider;
+    [SerializeField] SoundType soundOnHit;
 
-    [SerializeField] protected ParticleSystem particles;
+    [SerializeField] protected ParticleSystem destroyParticles;
     [SerializeField] protected SpriteRenderer sr;
-    [SerializeField] protected Collider2D col;
+    [SerializeField] bool setTrailColorToOutline;
     [SerializeField] protected Rigidbody2D rb;
-    [SerializeField] bool keepMass;
-
     [SerializeField] float actualDestroyDelay;
-    [SerializeField] Sound soundOnHit;
-
-    [SerializeField] int durability;
+    [SerializeField] TrailRenderer trail;
 
     protected ProjectileProperties properties;
+    protected Character sourceCharacter;
+    protected Item sourceItem;
 
-    protected Player player;
+    protected Vector2 lastVelocity;
+    protected float hitPoints;
     protected bool dead;
 
-    float highestVelocity;
-
-    public virtual void Setup(ProjectileProperties properties, Vector3 direction, Player player, Collider2D[] ignoreColliders = null)
+    public virtual void Initialize(ProjectileProperties properties, Item sourceItem, Character sourceCharacter)
     {
-        this.properties = properties;
+        IgnoreColliders(hitCollider, sourceCharacter.FriendlyColliders);
+        shaderEffectController.Initialize();
 
-        rb.velocity = direction * properties.Force;
-        transform.localScale *= properties.Scale;
+        this.sourceCharacter = sourceCharacter;
+        this.properties = properties;
+        this.sourceItem = sourceItem;
+
         rb.gravityScale = properties.Gravity;
+        hitPoints = properties.HitPoints;
+        rb.mass = properties.Mass;
 
-        this.player = player;
+        transform.localScale *= properties.Scale;
 
-        if (keepMass == false)
-            // So that the physics system does not determine knockback.
-            rb.mass = 0.000001f;
-
-        StartCoroutine(DoLifeTime(properties.MaxLifeTime));
-        IgnoreColliders(ignoreColliders);
+        if (fadeDestroyAnimation != null)
+        {
+            float startFadePercentage = 0.8f;
+            float timeTilFade = properties.MaxLifeTime * startFadePercentage;
+            fadeDestroyAnimation.StartFade(timeTilFade, properties.MaxLifeTime - timeTilFade, true);
+            fadeDestroyAnimation.Finished += DestroyNoParticles;
+        }
     }
 
-    public void Setup(ProjectileProperties properties, Player player, Collider2D[] ignoreColliders = null)
+    public void Move(float force, Vector2 direction)
     {
-        this.player = player;
-
-        this.properties = properties;
-
-        IgnoreColliders(ignoreColliders);
-        StartCoroutine(DoLifeTime(properties.MaxLifeTime));
+        rb.linearVelocity = force * direction;
     }
 
-    float tooSlowTimer;
+    public void SetColor(Color normalColor, Color outlineColor)
+    {
+        shaderEffectController.SetColor(normalColor);
+        shaderEffectController.SetOutlineColor(outlineColor);
+
+        if (destroyParticles != null)
+        {
+            var main = destroyParticles.main;
+            main.startColor = normalColor;
+        }
+
+        if (trail != null)
+        {
+            if (setTrailColorToOutline)
+                trail.startColor = outlineColor;
+            else
+                trail.startColor = normalColor;
+
+            trail.endColor = outlineColor;
+        }
+    }
 
     protected virtual void FixedUpdate()
     {
-        // Do minimum velocity
-        if (rb.velocity.magnitude < properties.MinVelocityMagnitude)
-        {
-            tooSlowTimer += Time.fixedDeltaTime;
-
-            if (tooSlowTimer > .05f)
-                TryDestroyProjectile(true);
-        }
-        else
-            tooSlowTimer = 0;
+        CheckForMinimumVelocity();
 
         // Do linear drag
-        rb.velocity = rb.velocity / (properties.LinearDrag + Vector2.one);
+        rb.linearVelocity = rb.linearVelocity / (properties.LinearDrag + Vector2.one);
 
-        if (highestVelocity < rb.velocity.magnitude)
-            highestVelocity = rb.velocity.magnitude;
+        lastVelocity = rb.linearVelocity;
     }
 
-    void TryDestroyProjectile(bool fadeOut)
+    void CheckForMinimumVelocity()
     {
-        if (dead) return;
+        // Do minimum velocity
+        if (rb.linearVelocity.magnitude < properties.MinVelocityMagnitude)
+        {
+            //tooSlowTimer += Time.fixedDeltaTime;
+
+            //if (tooSlowTimer > .05f)
+            fadeDestroyAnimation.StartFade();
+        }
+        //else
+        //    tooSlowTimer = 0;
+    }
+
+    protected void DestroyNoParticles()
+    {
+        destroyParticles = null;
+        TryDestroy();
+    }
+
+    protected void TryDestroy()
+    {
+        if (dead)
+            return;
+
         dead = true;
 
         OnDestroyed();
 
-        if (fadeOut == false)
-            if (particles != null)
-                particles.Emit((int)highestVelocity / 3);
+        if (destroyParticles != null)
+            destroyParticles.Emit(Mathf.CeilToInt(lastVelocity.magnitude / 3));
 
-        col.enabled = false;
         sr.enabled = false;
-        rb.constraints = RigidbodyConstraints2D.FreezeAll;
-
+        rb.simulated = false;
+        hitCollider.enabled = false;
         Destroy(gameObject, actualDestroyDelay);
     }
 
-    // Contains logic
     protected virtual void OnDestroyed() { }
 
-    protected virtual void HitSurface()
+    protected void IgnoreColliders(Collider2D col1, Collider2D[] cols)
     {
-        durability--;
+        if (hitCollider != null)
+            foreach (Collider2D collider in cols)
+                Physics2D.IgnoreCollision(col1, collider, true);
+    }
 
-        if (soundOnHit != null)
-            SoundManager.I.PlaySound(soundOnHit, transform.position);
+    protected virtual void OnCollisionEnter2D(Collision2D collision)
+    {
+        IDamageable damageable = collision.gameObject.GetComponent<IDamageable>();
 
-        if (durability <= 0)
-        {
-            // Play explode animation
-            TryDestroyProjectile(false);
-        }
+        if (damageable != null)
+            HitDamageable(damageable);
+
+        HitSomething();
     }
 
     protected virtual void HitDamageable(IDamageable damageable)
     {
-        if (damageable.Dead)
+        if (damageable.Dead || dead)
             return;
 
-        DamageDamageable(damageable, properties.Damage);
-
-        HitSurface();
+        damageable.ApplyKnockback(lastVelocity.normalized * properties.Knockback);
+        damageable.Damage(GetDamage(), sourceCharacter, sourceItem);
     }
 
-    protected virtual void DamageDamageable(IDamageable damageable, float amount)
+    void HitSomething()
     {
-        damageable.Damage(amount, player, properties.SourceItem);
+        hitPoints--;
+
+        if (soundOnHit != null)
+            SoundManager.I.PlaySound(soundOnHit, transform.position);
+
+        if (hitPoints <= 0)
+            TryDestroy();
     }
 
-    void IgnoreColliders(Collider2D[] cols)
+    protected void Reflect(ContactPoint2D point)
     {
-        if (col != null)
-            foreach (Collider2D collider in cols)
-                Physics2D.IgnoreCollision(col, collider);
+        Vector2 dir = Vector2.Reflect(transform.up, point.normal);
+        transform.rotation = Quaternion.Euler(0, 0, C.AngleFromPosition(transform.position, transform.position + new Vector3(dir.x, dir.y, 0)) - 90);
+
+        if (destroyParticles != null)
+            destroyParticles.Emit(1);
     }
 
-    IEnumerator DoLifeTime(float time)
-    {
-        yield return new WaitForSeconds(time);
-        if (gameObject != null)
-            TryDestroyProjectile(true);
-    }
+    public float HitPoints => hitPoints;
+    protected virtual float GetDamage() => properties.Damage;
 }

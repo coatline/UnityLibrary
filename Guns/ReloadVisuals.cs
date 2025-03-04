@@ -54,7 +54,7 @@ public class ReloadVisuals : MonoBehaviour
 
     void CreateBar()
     {
-        Canvas[] canvasas = FindObjectsOfType<Canvas>();
+        Canvas[] canvasas = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
         Canvas c = null;
 
         foreach (Canvas canvas in canvasas)
